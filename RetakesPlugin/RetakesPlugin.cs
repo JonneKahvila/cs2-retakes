@@ -8,8 +8,8 @@ using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
 using CounterStrikeSharp.API.Modules.Utils;
 using RetakesPlugin.Modules;
-using RetakesPlugin.Modules.Enums;
 using RetakesPlugin.Modules.Configs;
+using RetakesPlugin.Modules.Enums;
 using RetakesPlugin.Modules.Managers;
 using RetakesPluginShared;
 using RetakesPluginShared.Events;
@@ -31,7 +31,7 @@ public class RetakesPlugin : BasePlugin
 
     #region Constants
     public static readonly string LogPrefix = $"[Retakes {Version}] ";
-    
+
     // These two static variables are overwritten in the Load / OnMapStart with config values.
     public static string MessagePrefix = $"[{ChatColors.Green}Retakes{ChatColors.White}] ";
     public static bool IsDebugMode;
@@ -42,8 +42,9 @@ public class RetakesPlugin : BasePlugin
     private GameManager? _gameManager;
     private SpawnManager? _spawnManager;
     private BreakerManager? _breakerManager;
-    
-    public static PluginCapability<IRetakesPluginEventSender> RetakesPluginEventSenderCapability { get; } = new("retakes_plugin:event_sender");
+
+    public static PluginCapability<IRetakesPluginEventSender> RetakesPluginEventSenderCapability { get; } =
+        new("retakes_plugin:event_sender");
     #endregion
 
     #region Configs
@@ -56,10 +57,10 @@ public class RetakesPlugin : BasePlugin
     private CCSPlayerController? _planter;
     private CsTeam _lastRoundWinner = CsTeam.None;
     private Bombsite? _showingSpawnsForBombsite;
-    
+
     // TODO: We should really store this in SQLite, but for now we'll just store it in memory.
     private readonly HashSet<CCSPlayerController> _hasMutedVoices = new();
-    
+
     private void ResetState()
     {
         _currentBombsite = Bombsite.A;
@@ -85,9 +86,12 @@ public class RetakesPlugin : BasePlugin
         RegisterListener<Listeners.OnMapStart>(OnMapStart);
 
         AddCommandListener("jointeam", OnCommandJoinTeam);
-        
+
         var retakesPluginEventSender = new RetakesPluginEventSender();
-        Capabilities.RegisterPluginCapability(RetakesPluginEventSenderCapability, () => retakesPluginEventSender);
+        Capabilities.RegisterPluginCapability(
+            RetakesPluginEventSenderCapability,
+            () => retakesPluginEventSender
+        );
 
         if (hotReload)
         {
@@ -101,7 +105,7 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_spawns", "Show the spawns for the specified bombsite.")]
     [ConsoleCommand("css_edit", "Show the spawns for the specified bombsite.")]
     [CommandHelper(minArgs: 1, usage: "[A/B]", whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandShowSpawns(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (!Helpers.IsValidPlayer(player))
@@ -131,22 +135,36 @@ public class RetakesPlugin : BasePlugin
     }
 
     [ConsoleCommand("css_add", "Creates a new retakes spawn for the bombsite currently shown.")]
-    [ConsoleCommand("css_addspawn", "Creates a new retakes spawn for the bombsite currently shown.")]
+    [ConsoleCommand(
+        "css_addspawn",
+        "Creates a new retakes spawn for the bombsite currently shown."
+    )]
     [ConsoleCommand("css_new", "Creates a new retakes spawn for the bombsite currently shown.")]
-    [ConsoleCommand("css_newspawn", "Creates a new retakes spawn for the bombsite currently shown.")]
-    [CommandHelper(minArgs: 1, usage: "[T/CT] [Y/N can be planter]", whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [ConsoleCommand(
+        "css_newspawn",
+        "Creates a new retakes spawn for the bombsite currently shown."
+    )]
+    [CommandHelper(
+        minArgs: 1,
+        usage: "[T/CT] [Y/N can be planter]",
+        whoCanExecute: CommandUsage.CLIENT_ONLY
+    )]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandAddSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You can't add a spawn if you're not showing the spawns.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You can't add a spawn if you're not showing the spawns."
+            );
             return;
         }
 
         if (_spawnManager == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}Spawn manager not loaded for some reason...");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}Spawn manager not loaded for some reason..."
+            );
             return;
         }
 
@@ -159,15 +177,22 @@ public class RetakesPlugin : BasePlugin
         var team = commandInfo.GetArg(1).ToUpper();
         if (team != "T" && team != "CT")
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You must specify a team [T / CT] - [Value: {team}].");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You must specify a team [T / CT] - [Value: {team}]."
+            );
             return;
         }
 
         var canBePlanterInput = commandInfo.GetArg(2).ToUpper();
-        if (!string.IsNullOrWhiteSpace(canBePlanterInput) && canBePlanterInput != "Y" && canBePlanterInput != "N")
+        if (
+            !string.IsNullOrWhiteSpace(canBePlanterInput)
+            && canBePlanterInput != "Y"
+            && canBePlanterInput != "N"
+        )
         {
             commandInfo.ReplyToCommand(
-                $"{MessagePrefix}Incorrect value passed for can be a planter [Y / N] - [Value: {canBePlanterInput}].");
+                $"{MessagePrefix}Incorrect value passed for can be a planter [Y / N] - [Value: {canBePlanterInput}]."
+            );
             return;
         }
 
@@ -177,7 +202,10 @@ public class RetakesPlugin : BasePlugin
 
         foreach (var spawn in spawns)
         {
-            var distance = Helpers.GetDistanceBetweenVectors(spawn.Vector, player!.PlayerPawn.Value!.AbsOrigin!);
+            var distance = Helpers.GetDistanceBetweenVectors(
+                spawn.Vector,
+                player!.PlayerPawn.Value!.AbsOrigin!
+            );
 
             if (distance > 128.0 || distance > closestDistance)
             {
@@ -189,7 +217,9 @@ public class RetakesPlugin : BasePlugin
 
         if (closestDistance <= 72)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You are too close to another spawn, move away and try again.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You are too close to another spawn, move away and try again."
+            );
             return;
         }
 
@@ -199,9 +229,10 @@ public class RetakesPlugin : BasePlugin
         )
         {
             Team = team == "T" ? CsTeam.Terrorist : CsTeam.CounterTerrorist,
-            CanBePlanter = team == "T" && !string.IsNullOrWhiteSpace(canBePlanterInput)
-                ? canBePlanterInput == "Y"
-                : player.PlayerPawn.Value.InBombZoneTrigger,
+            CanBePlanter =
+                team == "T" && !string.IsNullOrWhiteSpace(canBePlanterInput)
+                    ? canBePlanterInput == "Y"
+                    : player.PlayerPawn.Value.InBombZoneTrigger,
             Bombsite = (Bombsite)_showingSpawnsForBombsite
         };
         Helpers.ShowSpawn(newSpawn);
@@ -218,7 +249,9 @@ public class RetakesPlugin : BasePlugin
             _spawnManager.CalculateMapSpawns();
         }
 
-        commandInfo.ReplyToCommand($"{MessagePrefix}{(didAddSpawn ? "Spawn added" : "Error adding spawn")}");
+        commandInfo.ReplyToCommand(
+            $"{MessagePrefix}{(didAddSpawn ? "Spawn added" : "Error adding spawn")}"
+        );
     }
 
     [ConsoleCommand("css_remove", "Deletes the nearest retakes spawn.")]
@@ -226,18 +259,22 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_delete", "Deletes the nearest retakes spawn.")]
     [ConsoleCommand("css_deletespawn", "Deletes the nearest retakes spawn.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandRemoveSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You can't remove a spawn if you're not showing the spawns.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You can't remove a spawn if you're not showing the spawns."
+            );
             return;
         }
 
         if (_spawnManager == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}Spawn manager not loaded for some reason...");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}Spawn manager not loaded for some reason..."
+            );
             return;
         }
 
@@ -265,7 +302,10 @@ public class RetakesPlugin : BasePlugin
 
         foreach (var spawn in spawns)
         {
-            var distance = Helpers.GetDistanceBetweenVectors(spawn.Vector, player!.PlayerPawn.Value!.AbsOrigin!);
+            var distance = Helpers.GetDistanceBetweenVectors(
+                spawn.Vector,
+                player!.PlayerPawn.Value!.AbsOrigin!
+            );
 
             if (distance > 128.0 || distance > closestDistance)
             {
@@ -292,9 +332,9 @@ public class RetakesPlugin : BasePlugin
             }
 
             if (
-                beamEntity.AbsOrigin.Z - closestSpawn.Vector.Z == 0 &&
-                beamEntity.AbsOrigin.X - closestSpawn.Vector.X == 0 &&
-                beamEntity.AbsOrigin.Y - closestSpawn.Vector.Y == 0
+                beamEntity.AbsOrigin.Z - closestSpawn.Vector.Z == 0
+                && beamEntity.AbsOrigin.X - closestSpawn.Vector.X == 0
+                && beamEntity.AbsOrigin.Y - closestSpawn.Vector.Y == 0
             )
             {
                 beamEntity.Remove();
@@ -307,24 +347,30 @@ public class RetakesPlugin : BasePlugin
             _spawnManager.CalculateMapSpawns();
         }
 
-        commandInfo.ReplyToCommand($"{MessagePrefix}{(didRemoveSpawn ? "Spawn removed" : "Error removing spawn")}");
+        commandInfo.ReplyToCommand(
+            $"{MessagePrefix}{(didRemoveSpawn ? "Spawn removed" : "Error removing spawn")}"
+        );
     }
 
     [ConsoleCommand("css_nearestspawn", "Goes to nearest retakes spawn.")]
     [ConsoleCommand("css_nearest", "Goes to nearest retakes spawn.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandNearestSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You can't remove a spawn if you're not showing the spawns.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You can't remove a spawn if you're not showing the spawns."
+            );
             return;
         }
 
         if (_spawnManager == null)
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}Spawn manager not loaded for some reason...");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}Spawn manager not loaded for some reason..."
+            );
             return;
         }
 
@@ -352,7 +398,10 @@ public class RetakesPlugin : BasePlugin
 
         foreach (var spawn in spawns)
         {
-            var distance = Helpers.GetDistanceBetweenVectors(spawn.Vector, player!.PlayerPawn.Value!.AbsOrigin!);
+            var distance = Helpers.GetDistanceBetweenVectors(
+                spawn.Vector,
+                player!.PlayerPawn.Value!.AbsOrigin!
+            );
 
             if (distance > 128.0 || distance > closestDistance)
             {
@@ -372,12 +421,12 @@ public class RetakesPlugin : BasePlugin
         player!.PlayerPawn.Value!.Teleport(closestSpawn.Vector, closestSpawn.QAngle, new Vector());
         commandInfo.ReplyToCommand($"{MessagePrefix}Teleported to nearest spawn");
     }
-    
+
     [ConsoleCommand("css_hidespawns", "Exits the spawn editing mode.")]
     [ConsoleCommand("css_done", "Exits the spawn editing mode.")]
     [ConsoleCommand("css_exitedit", "Exits the spawn editing mode.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandHideSpawns(CCSPlayerController? player, CommandInfo commandInfo)
     {
         _showingSpawnsForBombsite = null;
@@ -401,7 +450,7 @@ public class RetakesPlugin : BasePlugin
 
     [ConsoleCommand("css_debugqueues", "Prints the state of the queues to the console.")]
     [CommandHelper(whoCanExecute: CommandUsage.SERVER_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandDebugState(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_gameManager == null)
@@ -413,19 +462,29 @@ public class RetakesPlugin : BasePlugin
         _gameManager.QueueManager.DebugQueues(true);
     }
 
-    [ConsoleCommand("css_voices", "Toggles whether or not you want to hear bombsite voice announcements.")]
+    [ConsoleCommand(
+        "css_voices",
+        "Toggles whether or not you want to hear bombsite voice announcements."
+    )]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
     public void OnCommandVoices(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (!Helpers.IsValidPlayer(player))
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}You must be a valid player to use this command.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}You must be a valid player to use this command."
+            );
             return;
         }
 
-        if (RetakesConfig.IsLoaded(_retakesConfig) && !_retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementVoices)
+        if (
+            RetakesConfig.IsLoaded(_retakesConfig)
+            && !_retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementVoices
+        )
         {
-            commandInfo.ReplyToCommand($"{MessagePrefix}Bombsite voice announcements are permanently disabled on this server.");
+            commandInfo.ReplyToCommand(
+                $"{MessagePrefix}Bombsite voice announcements are permanently disabled on this server."
+            );
             return;
         }
 
@@ -439,8 +498,10 @@ public class RetakesPlugin : BasePlugin
         {
             _hasMutedVoices.Remove(player!);
         }
-        
-        commandInfo.ReplyToCommand($"{MessagePrefix}{_translator["retakes.voices.toggle", didMute ? $"{ChatColors.Red}disabled{ChatColors.White}" : $"{ChatColors.Green}enabled{ChatColors.White}"]}");
+
+        commandInfo.ReplyToCommand(
+            $"{MessagePrefix}{_translator["retakes.voices.toggle", didMute ? $"{ChatColors.Red}disabled{ChatColors.White}" : $"{ChatColors.Green}enabled{ChatColors.White}"]}"
+        );
     }
     #endregion
 
@@ -503,7 +564,7 @@ public class RetakesPlugin : BasePlugin
         {
             return HookResult.Continue;
         }
-        
+
         // TODO: We can make use of sv_human_autojoin_team 3 to prevent needing to do this.
         player.TeamNum = (int)CsTeam.Spectator;
         player.ForceTeamTime = 3600.0f;
@@ -512,10 +573,16 @@ public class RetakesPlugin : BasePlugin
         AddTimer(1.0f, () => player.ExecuteClientCommand("teammenu"));
 
         // Many hours of hard work went into this.
-        if (new List<ulong> {76561198028510846,76561198044886803,76561198414501446}.Contains(player.SteamID))
+        if (
+            new List<ulong> { 76561198028510846, 76561198044886803, 76561198414501446 }.Contains(
+                player.SteamID
+            )
+        )
         {
             var grant = _retakesConfig?.RetakesConfigData?.QueuePriorityFlag ?? "@css/vip";
-            player.PrintToConsole($"{LogPrefix}You have been given queue priority {grant} for being a Retakes contributor!");
+            player.PrintToConsole(
+                $"{LogPrefix}You have been given queue priority {grant} for being a Retakes contributor!"
+            );
             AdminManager.AddPlayerPermissions(player, grant);
         }
 
@@ -576,7 +643,8 @@ public class RetakesPlugin : BasePlugin
     public HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
     {
         // TODO: FIGURE OUT WHY THE FUCK I NEED TO DO THIS
-        var weirdAliveSpectators = Utilities.GetPlayers()
+        var weirdAliveSpectators = Utilities
+            .GetPlayers()
             .Where(x => x is { TeamNum: < (int)CsTeam.Terrorist, PawnIsAlive: true });
         foreach (var weirdAliveSpectator in weirdAliveSpectators)
         {
@@ -592,7 +660,10 @@ public class RetakesPlugin : BasePlugin
 
             if (_mapConfig != null)
             {
-                var numSpawns = Helpers.ShowSpawns(_mapConfig.GetSpawnsClone(), _showingSpawnsForBombsite);
+                var numSpawns = Helpers.ShowSpawns(
+                    _mapConfig.GetSpawnsClone(),
+                    _showingSpawnsForBombsite
+                );
             }
 
             return HookResult.Continue;
@@ -618,7 +689,10 @@ public class RetakesPlugin : BasePlugin
         Helpers.WriteLine("Clearing _showingSpawnsForBombsite");
         _showingSpawnsForBombsite = null;
 
-        _planter = _spawnManager.HandleRoundSpawns(_currentBombsite, _gameManager.QueueManager.ActivePlayers);
+        _planter = _spawnManager.HandleRoundSpawns(
+            _currentBombsite,
+            _gameManager.QueueManager.ActivePlayers
+        );
 
         AnnounceBombsite(_currentBombsite);
 
@@ -654,16 +728,23 @@ public class RetakesPlugin : BasePlugin
             // Strip the player of all of their weapons and the bomb before any spawn / allocation occurs.
             Helpers.RemoveHelmetAndHeavyArmour(player);
             player.RemoveWeapons();
-            
-            if (player == _planter && RetakesConfig.IsLoaded(_retakesConfig) &&
-                !_retakesConfig!.RetakesConfigData!.IsAutoPlantEnabled)
+
+            if (
+                player == _planter
+                && RetakesConfig.IsLoaded(_retakesConfig)
+                && !_retakesConfig!.RetakesConfigData!.IsAutoPlantEnabled
+            )
             {
-                Helpers.WriteLine($"{LogPrefix}Player is planter and auto plant is disabled, allocating bomb.");
+                Helpers.WriteLine(
+                    $"{LogPrefix}Player is planter and auto plant is disabled, allocating bomb."
+                );
                 Helpers.GiveAndSwitchToBomb(player);
             }
 
-            if (!RetakesConfig.IsLoaded(_retakesConfig) ||
-                _retakesConfig!.RetakesConfigData!.EnableFallbackAllocation)
+            if (
+                !RetakesConfig.IsLoaded(_retakesConfig)
+                || _retakesConfig!.RetakesConfigData!.EnableFallbackAllocation
+            )
             {
                 Helpers.WriteLine($"{LogPrefix}Allocating...");
                 AllocationManager.Allocate(player);
@@ -673,7 +754,7 @@ public class RetakesPlugin : BasePlugin
                 Helpers.WriteLine($"{LogPrefix}Fallback allocation disabled, skipping.");
             }
         }
-        
+
         RetakesPluginEventSenderCapability.Get()?.TriggerEvent(new AllocateEvent());
 
         return HookResult.Continue;
@@ -718,16 +799,26 @@ public class RetakesPlugin : BasePlugin
         if (!_gameManager.QueueManager.ActivePlayers.Contains(player))
         {
             Helpers.WriteLine(
-                $"{LogPrefix}[{player.PlayerName}] Checking player pawn {player.PlayerPawn.Value != null}.");
-            if (player.PlayerPawn.Value != null && player.PlayerPawn.IsValid && player.PlayerPawn.Value.IsValid)
+                $"{LogPrefix}[{player.PlayerName}] Checking player pawn {player.PlayerPawn.Value != null}."
+            );
+            if (
+                player.PlayerPawn.Value != null
+                && player.PlayerPawn.IsValid
+                && player.PlayerPawn.Value.IsValid
+            )
             {
                 Helpers.WriteLine(
-                    $"{LogPrefix}[{player.PlayerName}] player pawn is valid {player.PlayerPawn.IsValid} && {player.PlayerPawn.Value.IsValid}.");
-                Helpers.WriteLine($"{LogPrefix}[{player.PlayerName}] calling playerpawn.commitsuicide()");
+                    $"{LogPrefix}[{player.PlayerName}] player pawn is valid {player.PlayerPawn.IsValid} && {player.PlayerPawn.Value.IsValid}."
+                );
+                Helpers.WriteLine(
+                    $"{LogPrefix}[{player.PlayerName}] calling playerpawn.commitsuicide()"
+                );
                 player.PlayerPawn.Value.CommitSuicide(false, true);
             }
 
-            Helpers.WriteLine($"{LogPrefix}[{player.PlayerName}] Player not in ActivePlayers, moving to spectator.");
+            Helpers.WriteLine(
+                $"{LogPrefix}[{player.PlayerName}] Player not in ActivePlayers, moving to spectator."
+            );
             if (!player.IsBot)
             {
                 Helpers.WriteLine($"{LogPrefix}[{player.PlayerName}] moving to spectator.");
@@ -840,15 +931,20 @@ public class RetakesPlugin : BasePlugin
         var response = _gameManager.QueueManager.PlayerJoinedTeam(player, fromTeam, toTeam);
         _gameManager.QueueManager.DebugQueues(false);
 
-        Helpers.WriteLine($"{LogPrefix}[{player.PlayerName}] checking to ensure we have active players");
+        Helpers.WriteLine(
+            $"{LogPrefix}[{player.PlayerName}] checking to ensure we have active players"
+        );
         // If we don't have any active players, setup the active players and restart the game.
         if (_gameManager.QueueManager.ActivePlayers.Count == 0)
         {
-            Helpers.WriteLine($"{LogPrefix}[{player.PlayerName}] clearing round teams to allow team changes");
+            Helpers.WriteLine(
+                $"{LogPrefix}[{player.PlayerName}] clearing round teams to allow team changes"
+            );
             _gameManager.QueueManager.ClearRoundTeams();
 
             Helpers.WriteLine(
-                $"{LogPrefix}[{player.PlayerName}] no active players found, calling QueueManager.Update()");
+                $"{LogPrefix}[{player.PlayerName}] no active players found, calling QueueManager.Update()"
+            );
             _gameManager.QueueManager.DebugQueues(true);
             _gameManager.QueueManager.Update();
             _gameManager.QueueManager.DebugQueues(false);
@@ -903,10 +999,18 @@ public class RetakesPlugin : BasePlugin
         var isRetakesConfigLoaded = RetakesConfig.IsLoaded(_retakesConfig);
 
         // TODO: Once we implement per client translations this will need to be inside the loop
-        var announcementMessage = _translator["retakes.bombsite.announcement", bombsite.ToString(), numTerrorist,
-            numCounterTerrorist];
-        var centerAnnouncementMessage = _translator["center.retakes.bombsite.announcement", bombsite.ToString(), numTerrorist,
-            numCounterTerrorist];
+        var announcementMessage = _translator[
+            "retakes.bombsite.announcement",
+            bombsite.ToString(),
+            numTerrorist,
+            numCounterTerrorist
+        ];
+        var centerAnnouncementMessage = _translator[
+            "center.retakes.bombsite.announcement",
+            bombsite.ToString(),
+            numTerrorist,
+            numCounterTerrorist
+        ];
 
         foreach (var player in Utilities.GetPlayers())
         {
@@ -916,21 +1020,29 @@ public class RetakesPlugin : BasePlugin
                 player.PrintToChat($"{MessagePrefix}{announcementMessage}");
 
                 if (
-                    (!isRetakesConfigLoaded || _retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementVoices)
-                    && !_hasMutedVoices.Contains(player)
+                    (
+                        !isRetakesConfigLoaded
+                        || _retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementVoices
+                    ) && !_hasMutedVoices.Contains(player)
                 )
                 {
                     // Do this here so every player hears a random announcer each round.
-                    var bombsiteAnnouncer = bombsiteAnnouncers[Helpers.Random.Next(bombsiteAnnouncers.Length)];
+                    var bombsiteAnnouncer = bombsiteAnnouncers[
+                        Helpers.Random.Next(bombsiteAnnouncers.Length)
+                    ];
 
                     player.ExecuteClientCommand(
-                        $"play sounds/vo/agents/{bombsiteAnnouncer}/loc_{bombsite.ToString().ToLower()}_01");
+                        $"play sounds/vo/agents/{bombsiteAnnouncer}/loc_{bombsite.ToString().ToLower()}_01"
+                    );
                 }
 
                 continue;
             }
 
-            if (isRetakesConfigLoaded && !_retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementCenter)
+            if (
+                isRetakesConfigLoaded
+                && !_retakesConfig!.RetakesConfigData!.EnableBombsiteAnnouncementCenter
+            )
             {
                 continue;
             }
@@ -947,7 +1059,10 @@ public class RetakesPlugin : BasePlugin
         // Ensure the round time for defuse is always set to 1.92
         Server.ExecuteCommand("mp_roundtime_defuse 1.92");
 
-        if (RetakesConfig.IsLoaded(_retakesConfig) && !_retakesConfig!.RetakesConfigData!.IsAutoPlantEnabled)
+        if (
+            RetakesConfig.IsLoaded(_retakesConfig)
+            && !_retakesConfig!.RetakesConfigData!.IsAutoPlantEnabled
+        )
         {
             return;
         }
