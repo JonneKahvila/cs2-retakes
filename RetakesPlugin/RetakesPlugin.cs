@@ -31,7 +31,7 @@ public class RetakesPlugin : BasePlugin
 
     #region Constants
     public static readonly string LogPrefix = $"[Retakes {Version}] ";
-    
+
     // These two static variables are overwritten in the Load / OnMapStart with config values.
     public static string MessagePrefix = $"[{ChatColors.Green}Retakes{ChatColors.White}] ";
     public static bool IsDebugMode;
@@ -42,7 +42,7 @@ public class RetakesPlugin : BasePlugin
     private GameManager? _gameManager;
     private SpawnManager? _spawnManager;
     private BreakerManager? _breakerManager;
-    
+
     public static PluginCapability<IRetakesPluginEventSender> RetakesPluginEventSenderCapability { get; } = new("retakes_plugin:event_sender");
     #endregion
 
@@ -56,10 +56,10 @@ public class RetakesPlugin : BasePlugin
     private CCSPlayerController? _planter;
     private CsTeam _lastRoundWinner = CsTeam.None;
     private Bombsite? _showingSpawnsForBombsite;
-    
+
     // TODO: We should really store this in SQLite, but for now we'll just store it in memory.
     private readonly HashSet<CCSPlayerController> _hasMutedVoices = new();
-    
+
     private void ResetState()
     {
         _currentBombsite = Bombsite.A;
@@ -85,7 +85,7 @@ public class RetakesPlugin : BasePlugin
         RegisterListener<Listeners.OnMapStart>(OnMapStart);
 
         AddCommandListener("jointeam", OnCommandJoinTeam);
-        
+
         var retakesPluginEventSender = new RetakesPluginEventSender();
         Capabilities.RegisterPluginCapability(RetakesPluginEventSenderCapability, () => retakesPluginEventSender);
 
@@ -101,7 +101,7 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_spawns", "Show the spawns for the specified bombsite.")]
     [ConsoleCommand("css_edit", "Show the spawns for the specified bombsite.")]
     [CommandHelper(minArgs: 1, usage: "[A/B]", whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandShowSpawns(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (!Helpers.IsValidPlayer(player))
@@ -135,7 +135,7 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_new", "Creates a new retakes spawn for the bombsite currently shown.")]
     [ConsoleCommand("css_newspawn", "Creates a new retakes spawn for the bombsite currently shown.")]
     [CommandHelper(minArgs: 1, usage: "[T/CT] [Y/N can be planter]", whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandAddSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
@@ -226,7 +226,7 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_delete", "Deletes the nearest retakes spawn.")]
     [ConsoleCommand("css_deletespawn", "Deletes the nearest retakes spawn.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandRemoveSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
@@ -313,7 +313,7 @@ public class RetakesPlugin : BasePlugin
     [ConsoleCommand("css_nearestspawn", "Goes to nearest retakes spawn.")]
     [ConsoleCommand("css_nearest", "Goes to nearest retakes spawn.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandNearestSpawn(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (_showingSpawnsForBombsite == null)
@@ -372,12 +372,12 @@ public class RetakesPlugin : BasePlugin
         player!.PlayerPawn.Value!.Teleport(closestSpawn.Vector, closestSpawn.QAngle, new Vector());
         commandInfo.ReplyToCommand($"{MessagePrefix}Teleported to nearest spawn");
     }
-    
+
     [ConsoleCommand("css_hidespawns", "Exits the spawn editing mode.")]
     [ConsoleCommand("css_done", "Exits the spawn editing mode.")]
     [ConsoleCommand("css_exitedit", "Exits the spawn editing mode.")]
     [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
-    [RequiresPermissions("@css/root")]
+    [RequiresPermissions("@css/retake")]
     public void OnCommandHideSpawns(CCSPlayerController? player, CommandInfo commandInfo)
     {
         _showingSpawnsForBombsite = null;
@@ -439,7 +439,7 @@ public class RetakesPlugin : BasePlugin
         {
             _hasMutedVoices.Remove(player!);
         }
-        
+
         commandInfo.ReplyToCommand($"{MessagePrefix}{_translator["retakes.voices.toggle", didMute ? $"{ChatColors.Red}disabled{ChatColors.White}" : $"{ChatColors.Green}enabled{ChatColors.White}"]}");
     }
     #endregion
@@ -504,7 +504,7 @@ public class RetakesPlugin : BasePlugin
         {
             return HookResult.Continue;
         }
-        
+
         // TODO: We can make use of sv_human_autojoin_team 3 to prevent needing to do this.
         player.TeamNum = (int)CsTeam.Spectator;
         player.ForceTeamTime = 3600.0f;
@@ -516,7 +516,7 @@ public class RetakesPlugin : BasePlugin
             {
                 return;
             }
-            
+
             player.ExecuteClientCommand("teammenu");
         });
 
@@ -663,7 +663,7 @@ public class RetakesPlugin : BasePlugin
             // Strip the player of all of their weapons and the bomb before any spawn / allocation occurs.
             Helpers.RemoveHelmetAndHeavyArmour(player);
             player.RemoveWeapons();
-            
+
             if (player == _planter && RetakesConfig.IsLoaded(_retakesConfig) &&
                 !_retakesConfig!.RetakesConfigData!.IsAutoPlantEnabled)
             {
@@ -682,7 +682,7 @@ public class RetakesPlugin : BasePlugin
                 Helpers.WriteLine($"{LogPrefix}Fallback allocation disabled, skipping.");
             }
         }
-        
+
         RetakesPluginEventSenderCapability.Get()?.TriggerEvent(new AllocateEvent());
 
         return HookResult.Continue;
