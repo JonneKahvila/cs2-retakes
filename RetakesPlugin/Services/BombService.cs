@@ -59,7 +59,12 @@ public class BombService
         gameRules.BombPlanted = true;
         gameRules.BombDefused = false;
 
-        SendBombPlantedEvent(player, bombsite);
+        // Defer the event to the next server frame so the planted_c4 entity
+        // is fully registered by the engine, avoiding the "Player or C4 missing" error.
+        Server.NextFrame(() =>
+        {
+            SendBombPlantedEvent(player, bombsite);
+        });
 
         Logger.LogDebug("Bomb", $"Bomb planted at {bombsite} by {player.PlayerName}");
     }
